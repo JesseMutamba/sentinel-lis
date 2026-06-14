@@ -1,149 +1,127 @@
-// Flow diagram corridor map — Lumnia-style horizontal node-edge layout
+// Kamoa Corridor flow map — mine → concentrator → smelter → yard → port/border
 
 const NODES = {
-  Kasumbalesa:      { x: 90,  y: 60,  label: 'Kasumbalesa' },
-  CopperbeltBorder: { x: 320, y: 60,  label: 'Copperbelt Border' },
-  DarEsSalaam:      { x: 90,  y: 150, label: 'Dar es Salaam' },
-  Lusaka:           { x: 300, y: 150, label: 'Lusaka' },
-  Chirundu:         { x: 490, y: 150, label: 'Chirundu' },
-  Harare:           { x: 660, y: 150, label: 'Harare' },
-  Nacala:           { x: 90,  y: 245, label: 'Nacala' },
-  Lilongwe:         { x: 320, y: 245, label: 'Lilongwe' },
-  Beira:            { x: 90,  y: 320, label: 'Beira' },
-  Blantyre:         { x: 320, y: 320, label: 'Blantyre' },
-  Durban:           { x: 90,  y: 395, label: 'Durban' },
-  Johannesburg:     { x: 320, y: 395, label: 'Johannesburg' },
+  'Kamoa Mine':    { x: 78,  y: 120, anchor: 'end',    dx: -12, dy: 4  },
+  'Kakula Mine':   { x: 78,  y: 300, anchor: 'end',    dx: -12, dy: 4  },
+  'Concentrator':  { x: 240, y: 210, anchor: 'middle', dx: 0,   dy: 22 },
+  'Smelter':       { x: 385, y: 210, anchor: 'middle', dx: 0,   dy: 22 },
+  'Kolwezi Yard':  { x: 525, y: 210, anchor: 'middle', dx: 0,   dy: 22 },
+  'Lobito Port':   { x: 648, y: 78,  anchor: 'start',  dx: 12,  dy: 4  },
+  'Kasumbalesa':   { x: 648, y: 332, anchor: 'start',  dx: 12,  dy: 4  },
 };
 
-const ROUTE_EDGES = {
-  R3: { from: 'Kasumbalesa',  to: 'CopperbeltBorder' },
-  R5: { from: 'DarEsSalaam',  to: 'Lusaka' },
-  R1: { from: 'Lusaka',       to: 'Chirundu' },
-  R2: { from: 'Chirundu',     to: 'Harare' },
-  R6: { from: 'Nacala',       to: 'Lilongwe' },
-  R4: { from: 'Beira',        to: 'Blantyre' },
-  R7: { from: 'Durban',       to: 'Johannesburg' },
+// state → edge styling
+const EDGE_STYLE = {
+  over:   { color: '#f97316', width: 4,   dash: null },   // over baseline (critical)
+  above:  { color: '#ca8a04', width: 3,   dash: null },   // above baseline
+  on:     { color: '#2f7d6e', width: 2.5, dash: null },   // on baseline
+  nocost: { color: '#4b5563', width: 2,   dash: '7 5' },  // no cost data
 };
 
-const RISK_EDGE = {
-  critical: { stroke: '#f97316', dash: null,   width: 3.5 },
-  watch:    { stroke: '#fbbf24', dash: null,   width: 3 },
-  normal:   { stroke: '#2d3748', dash: '7 5',  width: 2 },
-};
-
-function curvePath(x1, y1, x2, y2) {
-  const dx = (x2 - x1) * 0.45;
-  return `M ${x1} ${y1} C ${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}`;
-}
-
-function midPoint(x1, y1, x2, y2) {
-  return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+function curve(from, to, bend = 0) {
+  // cubic bezier; bend lifts/drops the control points for the port/border legs
+  const mx = (from.x + to.x) / 2;
+  const c1x = mx, c1y = from.y - bend;
+  const c2x = mx, c2y = to.y + bend;
+  return {
+    d: `M ${from.x} ${from.y} C ${c1x} ${c1y} ${c2x} ${c2y} ${to.x} ${to.y}`,
+    mid: { x: mx, y: (from.y + to.y) / 2 - bend * 0.25 },
+  };
 }
 
 export default function CorridorMap({ routeAnalyses, selectedRoute, onRouteSelect }) {
+  const edges = Object.values(routeAnalyses).map(r => {
+    const from = NODES[r.from];
+    const to = NODES[r.to];
+    const bend = r.id === 'R5' ? 36 : r.id === 'R6' ? -36 : 0;
+    const geom = curve(from, to, bend);
+    return { route: r, from, to, geom };
+  });
+
   return (
     <div>
       {/* Legend */}
-      <div style={{ display: 'flex', gap: 20, marginBottom: 12, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 18, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         {[
           { color: '#f97316', dash: false, label: 'Over baseline' },
-          { color: '#fbbf24', dash: false, label: 'Above baseline' },
-          { color: '#374151', dash: true,  label: 'On baseline' },
-          { color: '#eab308', dash: false, label: 'Selected' },
+          { color: '#ca8a04', dash: false, label: 'Above baseline' },
+          { color: '#2f7d6e', dash: false, label: 'On baseline' },
+          { color: '#4b5563', dash: true,  label: 'No cost data' },
         ].map(item => (
           <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <svg width="22" height="4">
-              <line
-                x1="0" y1="2" x2="22" y2="2"
-                stroke={item.color}
-                strokeWidth="2.5"
-                strokeDasharray={item.dash ? '5 3' : undefined}
-              />
+              <line x1="0" y1="2" x2="22" y2="2" stroke={item.color} strokeWidth="2.5"
+                strokeDasharray={item.dash ? '5 3' : undefined} />
             </svg>
             <span style={{ fontSize: 11, color: '#6b7280' }}>{item.label}</span>
           </div>
         ))}
       </div>
 
-      <svg viewBox="0 0 720 430" style={{ width: '100%', height: 'auto', display: 'block' }}>
-        <rect width="720" height="430" fill="#080d18" rx="6" />
-
-        {/* Subtle horizontal bands */}
-        {[60, 150, 245, 320, 395].map(y => (
-          <line key={y} x1="30" y1={y} x2="690" y2={y} stroke="#111827" strokeWidth="1" strokeDasharray="3 6" />
-        ))}
+      <svg viewBox="0 0 720 400" style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <rect width="720" height="400" fill="#080d18" rx="6" />
 
         {/* Edges */}
-        {Object.entries(ROUTE_EDGES).map(([routeId, edge]) => {
-          const from = NODES[edge.from];
-          const to   = NODES[edge.to];
-          const analysis = routeAnalyses[routeId];
-          const isSelected = routeId === selectedRoute;
-          const risk = analysis?.risk ?? 'normal';
-          const cfg = RISK_EDGE[risk];
-          const color = isSelected ? '#eab308' : cfg.stroke;
-          const sw    = isSelected ? 4.5 : cfg.width;
-          const dash  = isSelected ? null : cfg.dash;
-          const path  = curvePath(from.x, from.y, to.x, to.y);
-          const mid   = midPoint(from.x, from.y, to.x, to.y);
-
-          // Latest-3wk tonnes for edge label
-          const last3 = (analysis?.weeklyData ?? []).filter(w => w.week >= 10);
-          const tonnes = Math.round(last3.reduce((s, d) => s + (d.totalTonnes ?? 0), 0));
+        {edges.map(({ route, geom }) => {
+          const style = EDGE_STYLE[route.state] ?? EDGE_STYLE.on;
+          const isSelected = route.id === selectedRoute;
+          const width = isSelected ? style.width + 1.5 : style.width;
 
           return (
-            <g key={routeId} onClick={() => onRouteSelect(routeId)} style={{ cursor: 'pointer' }}>
-              {/* Glow */}
-              <path d={path} stroke={color} strokeWidth={sw + 5} strokeOpacity="0.12" fill="none" />
-              {/* Main line */}
-              <path
-                d={path}
-                stroke={color}
-                strokeWidth={sw}
-                strokeDasharray={dash ?? undefined}
-                fill="none"
-                strokeLinecap="round"
-              />
-              {/* Tonnes label */}
-              <rect x={mid.x - 22} y={mid.y - 9} width="44" height="15" rx="3" fill="#0d1220" />
-              <text
-                x={mid.x} y={mid.y + 2.5}
-                textAnchor="middle" fontSize="9" fill={color} fontWeight="600" fontFamily="monospace"
-              >
-                {tonnes > 0 ? `${(tonnes / 1000).toFixed(1)}k t` : routeId}
-              </text>
+            <g key={route.id} onClick={() => onRouteSelect(route.id)} style={{ cursor: 'pointer' }}>
+              {/* selection halo */}
+              {isSelected && (
+                <path d={geom.d} stroke="#eab308" strokeWidth={width + 7} strokeOpacity="0.18"
+                  fill="none" strokeLinecap="round" />
+              )}
+              {/* glow */}
+              <path d={geom.d} stroke={style.color} strokeWidth={width + 4} strokeOpacity="0.12"
+                fill="none" strokeLinecap="round" />
+              {/* main */}
+              <path d={geom.d} stroke={style.color} strokeWidth={width}
+                strokeDasharray={style.dash ?? undefined} fill="none" strokeLinecap="round" />
+
+              {/* mid waypoint marker on the critical export leg */}
+              {route.state === 'over' && (
+                <circle cx={geom.mid.x} cy={geom.mid.y} r="4" fill="#080d18" stroke={style.color} strokeWidth="2" />
+              )}
+
+              {/* tonnes label */}
+              <g>
+                <rect x={geom.mid.x - 24} y={geom.mid.y - (route.state === 'over' ? 24 : 9)}
+                  width="48" height="15" rx="3" fill="#0d1220" />
+                <text x={geom.mid.x} y={geom.mid.y - (route.state === 'over' ? 13.5 : 1.5)}
+                  textAnchor="middle" fontSize="9.5"
+                  fill={isSelected ? '#eab308' : style.color} fontWeight="600" fontFamily="monospace">
+                  {route.tonnes.toLocaleString()} t
+                </text>
+              </g>
             </g>
           );
         })}
 
         {/* Nodes */}
         {Object.entries(NODES).map(([name, pos]) => {
-          // Which routes touch this node?
-          const touchingRoute = Object.entries(ROUTE_EDGES).find(
-            ([, e]) => e.from === name || e.to === name
-          );
-          const rId = touchingRoute?.[0];
-          const isSelectedNode = rId === selectedRoute;
-          const risk = rId ? (routeAnalyses[rId]?.risk ?? 'normal') : 'normal';
-          const nodeColor = isSelectedNode
-            ? '#eab308'
-            : risk === 'critical' ? '#f97316'
-            : risk === 'watch'    ? '#fbbf24'
-            : '#374151';
+          // node tone follows the worst route touching it
+          const touching = Object.values(routeAnalyses).filter(r => r.from === name || r.to === name);
+          const worst = touching.reduce((acc, r) => {
+            const rank = { over: 4, above: 3, nocost: 2, on: 1 };
+            return rank[r.state] > rank[acc] ? r.state : acc;
+          }, 'on');
+          const selectedHere = touching.some(r => r.id === selectedRoute);
+          const tone = EDGE_STYLE[worst]?.color ?? '#2f7d6e';
+          const ring = selectedHere ? '#eab308' : tone;
 
           return (
             <g key={name}>
-              {/* Outer glow ring */}
-              {isSelectedNode && (
+              {selectedHere && (
                 <circle cx={pos.x} cy={pos.y} r="11" fill="none" stroke="#eab308" strokeWidth="1" strokeOpacity="0.4" />
               )}
-              <circle cx={pos.x} cy={pos.y} r="6.5" fill="#0d1220" stroke={nodeColor} strokeWidth="2" />
-              <circle cx={pos.x} cy={pos.y} r="2.5" fill={nodeColor} />
-              <text
-                x={pos.x} y={pos.y + 20}
-                textAnchor="middle" fontSize="10" fill="#9ca3af" fontFamily="sans-serif"
-              >
-                {pos.label}
+              <circle cx={pos.x} cy={pos.y} r="6.5" fill="#0d1220" stroke={ring} strokeWidth="2" />
+              <circle cx={pos.x} cy={pos.y} r="2.5" fill={ring} />
+              <text x={pos.x + pos.dx} y={pos.y + pos.dy} textAnchor={pos.anchor}
+                fontSize="11" fill="#cbd5e1" fontFamily="sans-serif" fontWeight="500">
+                {name}
               </text>
             </g>
           );

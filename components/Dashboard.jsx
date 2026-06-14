@@ -7,188 +7,139 @@ import CorridorMap from './CorridorMap';
 import WeeklyTrends from './WeeklyTrends';
 import TripEvidence from './TripEvidence';
 import IntelligenceBrief from './IntelligenceBrief';
-import RouteChips from './RouteChips';
 
 const SENTINEL_DATA = getSentinelData();
 
+const NAV_LINKS = ['Solutions', 'Logistics', 'Pricing', 'About', 'Contact'];
 const TABS = [
-  { id: 'map',    label: 'Corridor Map' },
+  { id: 'map',    label: 'Corridor Flow Map' },
   { id: 'trends', label: 'Weekly Trends' },
   { id: 'trips',  label: 'Trip Evidence' },
 ];
 
-const NAV_LINKS = ['Overview', 'Corridors', 'Analytics', 'Reports', 'About'];
-
 export default function Dashboard() {
-  const [selectedRoute, setSelectedRoute] = useState('R3');
+  const [selectedRoute, setSelectedRoute] = useState(null);
   const [activeTab, setActiveTab] = useState('map');
   const [period, setPeriod] = useState('month');
 
   const { kpis, routeAnalyses, trips } = SENTINEL_DATA;
-  const routeAnalysis = routeAnalyses[selectedRoute];
-  const routeTrips = trips.filter(t => t.route === selectedRoute);
-  const routeIds = Object.keys(routeAnalyses);
 
-  // Sorted for brief: critical first, then watch
-  const alertRoutes = routeIds
-    .map(id => routeAnalyses[id])
-    .filter(r => r.risk !== 'normal')
-    .sort((a, b) => (a.risk === 'critical' ? -1 : 1));
+  // Critical route is the natural focus when nothing is explicitly selected
+  const focusRoute = selectedRoute ?? 'R5';
+  const routeTrips = trips.filter(t => t.route === focusRoute);
 
-  const hotSegments = alertRoutes.length;
-  const totalTonnes = Object.values(routeAnalyses).reduce((s, r) => {
-    const last = r.weeklyData.filter(w => w.week >= 10);
-    return s + last.reduce((a, b) => a + (b.totalTonnes ?? 0), 0);
-  }, 0);
-
-  function handleViewTrips(routeId) {
+  function viewTrips(routeId) {
     setSelectedRoute(routeId);
     setActiveTab('trips');
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1a', color: '#f9fafb' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1a', color: '#e5e7eb' }}>
 
-      {/* ── Navigation Bar ── */}
+      {/* ── Nav bar ── */}
       <nav style={{
-        backgroundColor: '#0d1220',
-        borderBottom: '1px solid #1a2236',
-        padding: '0 28px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0,
-        height: 52,
-        position: 'sticky',
-        top: 0,
-        zIndex: 20,
+        backgroundColor: '#0b1019', borderBottom: '1px solid #161e2e',
+        padding: '0 28px', height: 54, display: 'flex', alignItems: 'center',
+        position: 'sticky', top: 0, zIndex: 30,
       }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 40 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 44 }}>
           <div style={{
-            width: 32, height: 32,
-            backgroundColor: '#eab308',
-            borderRadius: 6,
+            width: 30, height: 30, backgroundColor: '#eab308', borderRadius: 6,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: 18, color: '#0a0f1a', letterSpacing: '-1px',
+            fontWeight: 900, fontSize: 17, color: '#0a0f1a', letterSpacing: '-1px',
           }}>S</div>
-          <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#f9fafb' }}>
-            Sentinel LIS
+          <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            Sentinel&nbsp;LIS
           </span>
         </div>
 
-        {/* Nav links */}
         {NAV_LINKS.map(link => {
-          const isActive = link === 'Corridors';
+          const active = link === 'Logistics';
           return (
             <button key={link} style={{
-              padding: '0 16px',
-              height: 52,
-              fontSize: 12,
-              fontWeight: isActive ? 700 : 400,
-              color: isActive ? '#eab308' : '#6b7280',
-              borderBottom: isActive ? '2px solid #eab308' : '2px solid transparent',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
+              padding: '0 15px', height: 54, fontSize: 11.5,
+              fontWeight: active ? 700 : 400,
+              color: active ? '#e5e7eb' : '#5b6677',
+              borderBottom: active ? '2px solid #eab308' : '2px solid transparent',
+              letterSpacing: '0.1em', textTransform: 'uppercase',
             }}>
               {link}
             </button>
           );
         })}
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button style={{ fontSize: 12, color: '#6b7280', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '0 12px' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button style={{ fontSize: 11.5, color: '#5b6677', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Sign In
           </button>
           <button style={{
-            fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            padding: '7px 16px',
-            border: '1px solid #eab308',
-            borderRadius: 4,
-            color: '#eab308',
+            fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+            padding: '8px 16px', border: '1px solid #2a3550', borderRadius: 4, color: '#e5e7eb',
           }}>
             Upload Data
           </button>
         </div>
       </nav>
 
-      <div style={{ padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-        {/* ── Subtitle row ── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Corridor Intelligence System
+        {/* ── Title row ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
+          <div style={{ maxWidth: 640 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#5b6677', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                Logistics Intelligence System
               </span>
               <span style={{
-                fontSize: 10, fontWeight: 700, color: '#eab308',
-                backgroundColor: '#1c1a05', border: '1px solid #78580a',
-                padding: '1px 8px', borderRadius: 3, letterSpacing: '0.08em', textTransform: 'uppercase',
+                fontSize: 9.5, fontWeight: 700, color: '#eab308',
+                backgroundColor: '#1c1905', border: '1px solid #5c4a08',
+                padding: '2px 8px', borderRadius: 3, letterSpacing: '0.1em', textTransform: 'uppercase',
               }}>
                 Sample Data
               </span>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#f9fafb', lineHeight: 1.2, marginBottom: 6, letterSpacing: '-0.02em' }}>
-              Southern &amp; Eastern Africa Corridor Flow
+            <h1 style={{ fontSize: 27, fontWeight: 800, lineHeight: 1.15, marginBottom: 8, letterSpacing: '-0.02em' }}>
+              Kamoa Corridor Flow Map
             </h1>
-            <p style={{ fontSize: 12, color: '#4b5563', lineHeight: 1.55, maxWidth: 520 }}>
-              A working intelligence view of how freight data becomes corridor signal: where material
-              is moving, where delays are forming, where cost is leaking — and which trips support each metric.
+            <p style={{ fontSize: 12.5, color: '#5b6677', lineHeight: 1.6 }}>
+              A working demo of how Sentinel LIS turns fragmented logistics data into corridor
+              intelligence: where material is moving, where delays are forming, where cost is
+              leaking — and which trips support each metric.
             </p>
           </div>
 
           {/* Period toggle */}
-          <div style={{ display: 'flex', gap: 0, border: '1px solid #1f2937', borderRadius: 6, overflow: 'hidden', flexShrink: 0, marginTop: 4 }}>
-            {['week', 'month', 'quarter'].map(p => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                style={{
-                  padding: '7px 18px',
-                  fontSize: 12, fontWeight: period === p ? 700 : 400,
-                  color: period === p ? '#0a0f1a' : '#6b7280',
-                  backgroundColor: period === p ? '#eab308' : 'transparent',
-                  textTransform: 'uppercase', letterSpacing: '0.07em',
-                  borderRight: p !== 'quarter' ? '1px solid #1f2937' : 'none',
-                }}
-              >
+          <div style={{ display: 'flex', border: '1px solid #1f2937', borderRadius: 6, overflow: 'hidden', flexShrink: 0, marginTop: 4 }}>
+            {['week', 'month', 'quarter'].map((p, i) => (
+              <button key={p} onClick={() => setPeriod(p)} style={{
+                padding: '8px 20px', fontSize: 11.5,
+                fontWeight: period === p ? 700 : 500,
+                color: period === p ? '#0a0f1a' : '#5b6677',
+                backgroundColor: period === p ? '#eab308' : 'transparent',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                borderLeft: i ? '1px solid #1f2937' : 'none',
+              }}>
                 {p}
               </button>
             ))}
           </div>
         </div>
 
-        {/* ── KPI Cards ── */}
-        <KPICards
-          kpis={kpis}
-          hotSegments={hotSegments}
-          totalTonnes={totalTonnes}
-        />
+        {/* ── KPI cards ── */}
+        <KPICards kpis={kpis} />
 
-        {/* ── Main: corridor map + brief ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 14, alignItems: 'start' }}>
+        {/* ── Map + brief ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 390px', gap: 16, alignItems: 'start' }}>
 
-          {/* Left – Tab Panel */}
-          <div style={{
-            backgroundColor: '#0d1220',
-            border: '1px solid #1a2236',
-            borderRadius: 8,
-            overflow: 'hidden',
-          }}>
+          <div style={{ backgroundColor: '#0d1220', border: '1px solid #1a2236', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{ display: 'flex', borderBottom: '1px solid #1a2236', backgroundColor: '#0a0f1a' }}>
               {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    padding: '11px 22px',
-                    fontSize: 12, fontWeight: activeTab === tab.id ? 700 : 400,
-                    color: activeTab === tab.id ? '#eab308' : '#4b5563',
-                    borderBottom: `2px solid ${activeTab === tab.id ? '#eab308' : 'transparent'}`,
-                    letterSpacing: '0.06em', textTransform: 'uppercase',
-                  }}
-                >
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+                  padding: '12px 20px', fontSize: 11, fontWeight: activeTab === tab.id ? 700 : 400,
+                  color: activeTab === tab.id ? '#eab308' : '#475569',
+                  borderBottom: `2px solid ${activeTab === tab.id ? '#eab308' : 'transparent'}`,
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                }}>
                   {tab.label}
                 </button>
               ))}
@@ -196,46 +147,24 @@ export default function Dashboard() {
 
             <div style={{ padding: 20 }}>
               {activeTab === 'map' && (
-                <CorridorMap
-                  routeAnalyses={routeAnalyses}
-                  selectedRoute={selectedRoute}
-                  onRouteSelect={setSelectedRoute}
-                />
+                <CorridorMap routeAnalyses={routeAnalyses} selectedRoute={selectedRoute} onRouteSelect={setSelectedRoute} />
               )}
               {activeTab === 'trends' && (
-                <WeeklyTrends routeAnalysis={routeAnalysis} />
+                <WeeklyTrends route={routeAnalyses[focusRoute]} />
               )}
               {activeTab === 'trips' && (
-                <TripEvidence trips={routeTrips} routeAnalysis={routeAnalysis} />
+                <TripEvidence trips={routeTrips} route={routeAnalyses[focusRoute]} />
               )}
             </div>
           </div>
 
-          {/* Right – Intelligence Brief */}
           <IntelligenceBrief
-            alertRoutes={alertRoutes}
             routeAnalyses={routeAnalyses}
             selectedRoute={selectedRoute}
-            onRouteSelect={routeId => { setSelectedRoute(routeId); setActiveTab('map'); }}
-            onViewTrips={handleViewTrips}
+            onRouteSelect={setSelectedRoute}
+            onViewTrips={viewTrips}
           />
         </div>
-
-        {/* ── Route chips ── */}
-        <div style={{
-          backgroundColor: '#0d1220',
-          border: '1px solid #1a2236',
-          borderRadius: 8,
-          padding: '12px 18px',
-        }}>
-          <RouteChips
-            routes={routeIds}
-            routeAnalyses={routeAnalyses}
-            selected={selectedRoute}
-            onSelect={setSelectedRoute}
-          />
-        </div>
-
       </div>
     </div>
   );
