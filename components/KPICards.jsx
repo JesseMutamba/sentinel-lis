@@ -20,7 +20,7 @@ export default function KPICards({ metrics, explanations = {}, hero }) {
   const [open, setOpen] = useState(null);
 
   const cards = [
-    { key: 'avoidableCost', label: 'Avoidable Cost', value: `$${Math.round(m.avoidableCost).toLocaleString()}`, sub: m.periodLabel, trend: m.avoidableTrend, trendBad: true, accent: true },
+    { key: 'avoidableCost', label: 'Avoidable Cost', value: `$${Math.round(m.avoidableCost).toLocaleString()}`, sub: `Blown-out segments · ${m.periodLabel}`, trend: m.avoidableTrend, trendBad: true, accent: true },
     { key: 'networkTonnes', label: 'Network Tonnes', value: `${Math.round(m.networkTonnes).toLocaleString()} t`, sub: `${m.routeCount} active routes`, trend: m.tonnesTrend, trendBad: false },
     { key: 'hotSegments', label: 'Hot Segments', value: String(m.hotSegments), sub: 'Above cost baseline or drifting', trend: null },
     { key: 'leadTime', label: 'Lead Time', value: hero?.leadTimeWeeks != null ? `${hero.leadTimeWeeks} wks` : '—', sub: 'Delay signal before cost blowout', trend: null },
