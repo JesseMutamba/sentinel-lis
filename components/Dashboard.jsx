@@ -77,9 +77,11 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [modalOpen, setModalOpen] = useState(false);
   const [history, setHistory] = useState([]);
+  const [historyReady, setHistoryReady] = useState(false);
 
   const pollRef = useRef(null);
   const lastHashRef = useRef('');
+  const historyModeRef = useRef('local');
 
   const data = useMemo(() => computeFromTrips(trips), [trips]);
   const metrics = useMemo(() => computePeriodMetrics(data, period), [data, period]);
@@ -176,29 +178,58 @@ export default function Dashboard() {
     return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('focus', onFocus); };
   }, [source.kind, source.url, fetchUrl]);
 
-  // ── History: hydrate, then snapshot whenever the data meaningfully changes ──
+  // ── History: load from server (Vercel KV) if configured, else localStorage ──
   useEffect(() => {
-    try {
-      const h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-      if (Array.isArray(h) && h.length) setHistory(h);
-    } catch { /* ignore */ }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/history', { cache: 'no-store' });
+        if (r.ok) {
+          const j = await r.json();
+          if (j.configured) {
+            historyModeRef.current = 'server';
+            if (!cancelled && Array.isArray(j.snapshots) && j.snapshots.length) setHistory(j.snapshots);
+            if (!cancelled) setHistoryReady(true);
+            return;
+          }
+        }
+      } catch { /* fall through to local */ }
+      try {
+        const h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        if (!cancelled && Array.isArray(h) && h.length) setHistory(h);
+      } catch { /* ignore */ }
+      if (!cancelled) setHistoryReady(true);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
+  // Snapshot whenever the data meaningfully changes (after history has loaded)
   useEffect(() => {
+    if (!historyReady) return;
     const snap = snapshotOf(data);
     setHistory(prev => {
       const last = prev[prev.length - 1];
       if (last && snapSig(last) === snapSig(snap)) return prev;
       const next = [...prev, snap].slice(-MAX_SNAPSHOTS);
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      if (historyModeRef.current === 'server') {
+        fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snap) }).catch(() => {});
+      } else {
+        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      }
       return next;
     });
-  }, [data]);
+  }, [data, historyReady]);
 
   const clearHistory = useCallback(() => {
     const seed = [snapshotOf(data)];
     setHistory(seed);
-    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(seed)); } catch { /* ignore */ }
+    if (historyModeRef.current === 'server') {
+      fetch('/api/history', { method: 'DELETE' })
+        .then(() => fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(seed[0]) }))
+        .catch(() => {});
+    } else {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(seed)); } catch { /* ignore */ }
+    }
   }, [data]);
 
   const manualRefresh = () => { if (source.kind === 'url' && source.url) fetchUrl(source.url, { announce: true }); };
