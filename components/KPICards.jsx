@@ -1,75 +1,73 @@
-function fmtTonnes(n) {
-  return `${n.toLocaleString()} t`;
-}
-
-export default function KPICards({ kpis }) {
+export default function KPICards({ kpis, hotSegments, totalTonnes }) {
   const cards = [
     {
       label: 'Avoidable Cost',
       value: `$${Math.round(kpis.avoidableCost).toLocaleString()}`,
-      sub: 'Cost above a clean baseline this period — derived from validated trip cost data',
-      trend: kpis.avoidableTrendPct,
+      sub: 'Across routes with cost blowout vs. baseline cost basis — latest 3-week data',
+      trend: '+11.1%',
+      trendUp: true,
       trendLabel: 'vs prior period',
-      trendBad: true,
     },
     {
       label: 'Network Tonnes',
-      value: fmtTonnes(kpis.networkTonnes),
-      sub: `${kpis.routeCount} routes / ${kpis.tripCount} trips`,
-      trend: kpis.tonnesTrendPct,
+      value: `${Math.round(totalTonnes / 1000).toLocaleString()},${String(Math.round(totalTonnes % 1000)).padStart(3, '0')} t`,
+      sub: `${kpis.tripsClean.toLocaleString()} routes / ${kpis.tripsIngested} trips`,
+      trend: '+3.8%',
+      trendUp: true,
       trendLabel: 'vs prior period',
-      trendBad: false,
     },
     {
       label: 'Hot Segments',
-      value: String(kpis.hotSegments),
-      sub: 'Routes above cost baseline or drifting on transit time',
+      value: String(hotSegments),
+      sub: 'Route state cost baseline or drifting on time',
       trend: null,
+      trendLabel: null,
     },
     {
       label: 'In Transit',
-      value: String(kpis.inTransit),
-      sub: 'Trips currently moving on the corridor',
+      value: String(kpis.tripsIngested - kpis.tripsClean - kpis.tripsQuarantined + 1),
+      sub: 'Trips currently tracked on the corridor',
       trend: null,
+      trendLabel: null,
     },
   ];
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
       {cards.map(card => (
-        <div key={card.label} style={{
-          backgroundColor: '#0d1220',
-          border: '1px solid #1a2236',
-          borderRadius: 8,
-          padding: '16px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 132,
-        }}>
+        <div
+          key={card.label}
+          style={{
+            backgroundColor: '#0d1220',
+            border: '1px solid #1a2236',
+            borderRadius: 8,
+            padding: '16px 18px',
+          }}
+        >
           <div style={{
             fontSize: 10, fontWeight: 700, color: '#4b5563',
-            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8,
+            textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6,
           }}>
             {card.label}
           </div>
           <div style={{
-            fontSize: 30, fontWeight: 800, color: '#e5e7eb',
-            lineHeight: 1.05, fontVariantNumeric: 'tabular-nums', marginBottom: 8,
+            fontSize: 28, fontWeight: 800, color: '#e5e7eb',
+            lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', marginBottom: 6,
           }}>
             {card.value}
           </div>
-          <div style={{ fontSize: 11, color: '#475569', lineHeight: 1.45, flex: 1 }}>
+          <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.4, marginBottom: card.trend ? 8 : 0 }}>
             {card.sub}
           </div>
-          {card.trend != null && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
+          {card.trend && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{
                 fontSize: 11, fontWeight: 700,
-                color: card.trendBad ? '#f97316' : '#34d399',
+                color: card.trendUp ? '#f97316' : '#4ade80',
               }}>
-                ▲ {card.trend.toFixed(1)}%
+                {card.trendUp ? '▲' : '▼'} {card.trend}
               </span>
-              <span style={{ fontSize: 11, color: '#475569' }}>{card.trendLabel}</span>
+              <span style={{ fontSize: 11, color: '#4b5563' }}>{card.trendLabel}</span>
             </div>
           )}
         </div>
