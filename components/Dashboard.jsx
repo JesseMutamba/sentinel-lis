@@ -15,15 +15,19 @@ import IntelligenceBrief from './IntelligenceBrief';
 import RouteChips from './RouteChips';
 import AnalystLayer from './AnalystLayer';
 import UploadModal from './UploadModal';
+import HistoryPanel from './HistoryPanel';
 
 const TABS = [
-  { id: 'map',    label: 'Corridor Map' },
-  { id: 'trends', label: 'Weekly Trends' },
-  { id: 'trips',  label: 'Trip Evidence' },
+  { id: 'map',     label: 'Corridor Map' },
+  { id: 'trends',  label: 'Weekly Trends' },
+  { id: 'trips',   label: 'Trip Evidence' },
+  { id: 'history', label: 'History' },
 ];
 const NAV_LINKS = ['Solutions', 'Logistics', 'Pricing', 'About', 'Contact'];
 const PERIODS = ['week', 'month', 'quarter'];
 const STORAGE_KEY = 'lumnia.dataset';
+const HISTORY_KEY = 'lumnia.history';
+const MAX_SNAPSHOTS = 60;
 const POLL_MS = 10000;
 
 // Deploy-wide default live source. Override in Vercel env (NEXT_PUBLIC_LIVE_SOURCE_URL);
@@ -46,6 +50,25 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// A compact KPI snapshot for the History tab
+function snapshotOf(data) {
+  const s = data.summary, ig = data.integrity;
+  const hero = data.routeAnalyses[data.heroId];
+  return {
+    ts: Date.now(),
+    avoidableCost: s.totalAvoidableCost,
+    networkTonnes: s.totalTonnes,
+    flaggedSegments: s.flaggedSegments,
+    criticalSegments: s.criticalSegments,
+    cleanTrips: ig.cleanTrips,
+    quarantined: ig.rowsNeedingReview,
+    rawRows: ig.rawRows,
+    duplicatesDropped: ig.duplicatesDropped,
+    hero: hero ? { segment: hero.segment, avoidableCost: hero.avoidableCost, leadTimeWeeks: hero.leadTimeWeeks } : null,
+  };
+}
+const snapSig = s => `${s.rawRows}:${s.cleanTrips}:${Math.round(s.avoidableCost)}:${Math.round(s.networkTonnes)}:${s.flaggedSegments}`;
+
 export default function Dashboard() {
   const [trips, setTrips] = useState(SAMPLE_TRIPS);
   const [source, setSource] = useState({ kind: 'sample' });
@@ -53,6 +76,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('map');
   const [period, setPeriod] = useState('month');
   const [modalOpen, setModalOpen] = useState(false);
+  const [history, setHistory] = useState([]);
 
   const pollRef = useRef(null);
   const lastHashRef = useRef('');
@@ -151,6 +175,31 @@ export default function Dashboard() {
     window.addEventListener('focus', onFocus);
     return () => { window.removeEventListener('storage', onStorage); window.removeEventListener('focus', onFocus); };
   }, [source.kind, source.url, fetchUrl]);
+
+  // ── History: hydrate, then snapshot whenever the data meaningfully changes ──
+  useEffect(() => {
+    try {
+      const h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      if (Array.isArray(h) && h.length) setHistory(h);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    const snap = snapshotOf(data);
+    setHistory(prev => {
+      const last = prev[prev.length - 1];
+      if (last && snapSig(last) === snapSig(snap)) return prev;
+      const next = [...prev, snap].slice(-MAX_SNAPSHOTS);
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, [data]);
+
+  const clearHistory = useCallback(() => {
+    const seed = [snapshotOf(data)];
+    setHistory(seed);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(seed)); } catch { /* ignore */ }
+  }, [data]);
 
   const manualRefresh = () => { if (source.kind === 'url' && source.url) fetchUrl(source.url, { announce: true }); };
 
@@ -262,8 +311,9 @@ export default function Dashboard() {
               {activeTab === 'map' && (
                 <CorridorMap routeAnalyses={data.routeAnalyses} routeTonnes={metrics.routeTonnes} selectedRoute={focusRoute} onRouteSelect={setSelectedRoute} />
               )}
-              {activeTab === 'trends' && <WeeklyTrends routeAnalysis={routeAnalysis} />}
-              {activeTab === 'trips'  && <TripEvidence trips={routeTrips} routeAnalysis={routeAnalysis} />}
+              {activeTab === 'trends'  && <WeeklyTrends routeAnalysis={routeAnalysis} />}
+              {activeTab === 'trips'   && <TripEvidence trips={routeTrips} routeAnalysis={routeAnalysis} />}
+              {activeTab === 'history' && <HistoryPanel history={history} onClear={clearHistory} />}
             </div>
           </div>
 
