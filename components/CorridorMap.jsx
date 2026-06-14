@@ -33,7 +33,7 @@ const ROUTE_EDGES = {
 const RISK = {
   critical: { color: THEME.critical, label: 'Critical' },
   watch:    { color: THEME.watch,    label: 'Watch' },
-  normal:   { color: '#2f7d6e',      label: 'Normal' },
+  normal:   { color: THEME.normal,   label: 'Normal' },
 };
 
 function edgePath(a, b) {
@@ -146,7 +146,7 @@ export default function CorridorMap({ routeAnalyses, routeTonnes = {}, selectedR
             const isOnActive = rId && (rId === selectedRoute || rId === hovered);
             const color = isOnActive
               ? (rId === selectedRoute ? THEME.selected : (RISK[risk]?.color ?? RISK.normal.color))
-              : '#3a4860';
+              : '#4a4636';
 
             return (
               <g key={name}>
