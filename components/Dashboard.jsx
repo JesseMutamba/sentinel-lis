@@ -232,6 +232,20 @@ export default function Dashboard() {
     }
   }, [data]);
 
+  // Manual snapshot — records the current KPIs on demand (mark a baseline)
+  const captureSnapshot = useCallback(() => {
+    const snap = snapshotOf(data);
+    setHistory(prev => {
+      const next = [...prev, snap].slice(-MAX_SNAPSHOTS);
+      if (historyModeRef.current === 'server') {
+        fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snap) }).catch(() => {});
+      } else {
+        try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      }
+      return next;
+    });
+  }, [data]);
+
   const manualRefresh = () => { if (source.kind === 'url' && source.url) fetchUrl(source.url, { announce: true }); };
 
   const navActive = { color: THEME.goldBright, border: THEME.accent };
@@ -344,7 +358,7 @@ export default function Dashboard() {
               )}
               {activeTab === 'trends'  && <WeeklyTrends routeAnalysis={routeAnalysis} />}
               {activeTab === 'trips'   && <TripEvidence trips={routeTrips} routeAnalysis={routeAnalysis} />}
-              {activeTab === 'history' && <HistoryPanel history={history} onClear={clearHistory} />}
+              {activeTab === 'history' && <HistoryPanel history={history} onClear={clearHistory} onCapture={captureSnapshot} />}
             </div>
           </div>
 
