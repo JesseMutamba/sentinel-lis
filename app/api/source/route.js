@@ -18,6 +18,9 @@ const allowed = host => ALLOWED_HOSTS.some(rx => rx.test(host));
 const UA = 'Mozilla/5.0 (compatible; Lumnia-Corridor/1.0; +https://lumnia.demo)';
 
 // Expand a Google Sheets link into ordered CSV-export candidates.
+// /export is tried first: it returns the raw sheet with headers intact. (The
+// gviz endpoint mangles messy sheets — it blanks numeric column headers — so it
+// is only a fallback.)
 function candidates(target) {
   if (/output=csv|\/gviz\/|\.csv(\?|$)/i.test(target)) return [target];
   const m = target.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
@@ -26,8 +29,8 @@ function candidates(target) {
     const g = target.match(/[#&?]gid=(\d+)/);
     const gid = g ? g[1] : '0';
     return [
-      `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&headers=1&gid=${gid}`,
       `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`,
+      `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`,
     ];
   }
   return [target];
