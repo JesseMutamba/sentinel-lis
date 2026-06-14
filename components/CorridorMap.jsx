@@ -1,123 +1,154 @@
+// Flow diagram corridor map — Lumnia-style horizontal node-edge layout
+
 const NODES = {
-  Kasumbalesa:      { x: 210, y: 195, label: 'Kasumbalesa' },
-  CopperbeltBorder: { x: 185, y: 148, label: 'Copperbelt Border' },
-  Lusaka:           { x: 295, y: 268, label: 'Lusaka' },
-  Chirundu:         { x: 345, y: 322, label: 'Chirundu' },
-  Harare:           { x: 445, y: 296, label: 'Harare' },
-  Beira:            { x: 510, y: 315, label: 'Beira' },
-  Blantyre:         { x: 475, y: 268, label: 'Blantyre' },
-  DarEsSalaam:      { x: 568, y: 128, label: 'Dar es Salaam' },
-  Nacala:           { x: 545, y: 222, label: 'Nacala' },
-  Lilongwe:         { x: 458, y: 212, label: 'Lilongwe' },
-  Durban:           { x: 458, y: 445, label: 'Durban' },
-  Johannesburg:     { x: 345, y: 398, label: 'Johannesburg' },
+  Kasumbalesa:      { x: 90,  y: 60,  label: 'Kasumbalesa' },
+  CopperbeltBorder: { x: 320, y: 60,  label: 'Copperbelt Border' },
+  DarEsSalaam:      { x: 90,  y: 150, label: 'Dar es Salaam' },
+  Lusaka:           { x: 300, y: 150, label: 'Lusaka' },
+  Chirundu:         { x: 490, y: 150, label: 'Chirundu' },
+  Harare:           { x: 660, y: 150, label: 'Harare' },
+  Nacala:           { x: 90,  y: 245, label: 'Nacala' },
+  Lilongwe:         { x: 320, y: 245, label: 'Lilongwe' },
+  Beira:            { x: 90,  y: 320, label: 'Beira' },
+  Blantyre:         { x: 320, y: 320, label: 'Blantyre' },
+  Durban:           { x: 90,  y: 395, label: 'Durban' },
+  Johannesburg:     { x: 320, y: 395, label: 'Johannesburg' },
 };
 
 const ROUTE_EDGES = {
-  R1: { from: 'Lusaka', to: 'Chirundu' },
-  R2: { from: 'Chirundu', to: 'Harare' },
-  R3: { from: 'Kasumbalesa', to: 'CopperbeltBorder' },
-  R4: { from: 'Beira', to: 'Blantyre' },
-  R5: { from: 'DarEsSalaam', to: 'Lusaka' },
-  R6: { from: 'Nacala', to: 'Lilongwe' },
-  R7: { from: 'Durban', to: 'Johannesburg' },
+  R3: { from: 'Kasumbalesa',  to: 'CopperbeltBorder' },
+  R5: { from: 'DarEsSalaam',  to: 'Lusaka' },
+  R1: { from: 'Lusaka',       to: 'Chirundu' },
+  R2: { from: 'Chirundu',     to: 'Harare' },
+  R6: { from: 'Nacala',       to: 'Lilongwe' },
+  R4: { from: 'Beira',        to: 'Blantyre' },
+  R7: { from: 'Durban',       to: 'Johannesburg' },
 };
 
-const RISK_COLORS = { critical: '#ef4444', watch: '#f59e0b', normal: '#22c55e' };
+const RISK_EDGE = {
+  critical: { stroke: '#f97316', dash: null,   width: 3.5 },
+  watch:    { stroke: '#fbbf24', dash: null,   width: 3 },
+  normal:   { stroke: '#2d3748', dash: '7 5',  width: 2 },
+};
 
-function arrowHead(x1, y1, x2, y2, color) {
-  const angle = Math.atan2(y2 - y1, x2 - x1);
-  const tipX = x2 - 7 * Math.cos(angle);
-  const tipY = y2 - 7 * Math.sin(angle);
-  const lx = tipX - 10 * Math.cos(angle - 0.4);
-  const ly = tipY - 10 * Math.sin(angle - 0.4);
-  const rx = tipX - 10 * Math.cos(angle + 0.4);
-  const ry = tipY - 10 * Math.sin(angle + 0.4);
-  return `M ${lx} ${ly} L ${tipX} ${tipY} L ${rx} ${ry}`;
+function curvePath(x1, y1, x2, y2) {
+  const dx = (x2 - x1) * 0.45;
+  return `M ${x1} ${y1} C ${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}`;
+}
+
+function midPoint(x1, y1, x2, y2) {
+  return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
 }
 
 export default function CorridorMap({ routeAnalyses, selectedRoute, onRouteSelect }) {
   return (
-    <svg
-      viewBox="0 0 640 490"
-      style={{ width: '100%', height: 'auto', maxHeight: 460, display: 'block' }}
-    >
-      <rect width="640" height="490" fill="#0d1526" rx="6" />
-
-      {/* Subtle grid */}
-      {[80, 160, 240, 320, 400].map(y => (
-        <line key={`h${y}`} x1="0" y1={y} x2="640" y2={y} stroke="#161e2e" strokeWidth="1" />
-      ))}
-      {[80, 160, 240, 320, 400, 480, 560].map(x => (
-        <line key={`v${x}`} x1={x} y1="0" x2={x} y2="490" stroke="#161e2e" strokeWidth="1" />
-      ))}
-
-      {/* Route edges */}
-      {Object.entries(ROUTE_EDGES).map(([routeId, edge]) => {
-        const from = NODES[edge.from];
-        const to = NODES[edge.to];
-        const analysis = routeAnalyses[routeId];
-        const isSelected = routeId === selectedRoute;
-        const color = isSelected ? '#eab308' : (RISK_COLORS[analysis?.risk] ?? '#22c55e');
-        const sw = isSelected ? 4.5 : 3;
-        const mx = (from.x + to.x) / 2;
-        const my = (from.y + to.y) / 2;
-
-        return (
-          <g key={routeId} onClick={() => onRouteSelect(routeId)} style={{ cursor: 'pointer' }}>
-            {/* Glow halo */}
-            <line
-              x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-              stroke={color} strokeWidth={sw + 6} strokeOpacity="0.15" strokeLinecap="round"
-            />
-            <line
-              x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-              stroke={color} strokeWidth={sw} strokeLinecap="round"
-            />
-            {/* Arrow */}
-            <path d={arrowHead(from.x, from.y, to.x, to.y, color)} stroke={color} strokeWidth="1.5" fill="none" />
-            {/* Route chip */}
-            <rect x={mx - 13} y={my - 10} width="26" height="17" rx="4" fill="#111827" stroke={color} strokeWidth="1.2" />
-            <text
-              x={mx} y={my + 2.5}
-              textAnchor="middle" fontSize="9.5" fontWeight="700"
-              fill={color} fontFamily="monospace"
-            >
-              {routeId}
-            </text>
-          </g>
-        );
-      })}
-
-      {/* City nodes */}
-      {Object.entries(NODES).map(([name, pos]) => (
-        <g key={name}>
-          <circle cx={pos.x} cy={pos.y} r="6" fill="#1f2937" stroke="#4b5563" strokeWidth="1.5" />
-          <circle cx={pos.x} cy={pos.y} r="2.5" fill="#9ca3af" />
-          <text
-            x={pos.x + 9} y={pos.y + 4}
-            fontSize="9" fill="#9ca3af" fontFamily="sans-serif"
-          >
-            {pos.label}
-          </text>
-        </g>
-      ))}
-
+    <div>
       {/* Legend */}
-      <g transform="translate(10, 418)">
-        <rect x="0" y="0" width="120" height="66" rx="5" fill="#111827" stroke="#1f2937" strokeWidth="1" />
+      <div style={{ display: 'flex', gap: 20, marginBottom: 12, alignItems: 'center' }}>
         {[
-          { color: '#ef4444', label: 'Critical' },
-          { color: '#f59e0b', label: 'Watch' },
-          { color: '#22c55e', label: 'Normal' },
-          { color: '#eab308', label: 'Selected' },
-        ].map((item, i) => (
-          <g key={item.label} transform={`translate(10, ${13 + i * 13})`}>
-            <line x1="0" y1="0" x2="18" y2="0" stroke={item.color} strokeWidth="2.5" strokeLinecap="round" />
-            <text x="25" y="4" fontSize="9.5" fill="#9ca3af" fontFamily="sans-serif">{item.label}</text>
-          </g>
+          { color: '#f97316', dash: false, label: 'Over baseline' },
+          { color: '#fbbf24', dash: false, label: 'Above baseline' },
+          { color: '#374151', dash: true,  label: 'On baseline' },
+          { color: '#eab308', dash: false, label: 'Selected' },
+        ].map(item => (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="22" height="4">
+              <line
+                x1="0" y1="2" x2="22" y2="2"
+                stroke={item.color}
+                strokeWidth="2.5"
+                strokeDasharray={item.dash ? '5 3' : undefined}
+              />
+            </svg>
+            <span style={{ fontSize: 11, color: '#6b7280' }}>{item.label}</span>
+          </div>
         ))}
-      </g>
-    </svg>
+      </div>
+
+      <svg viewBox="0 0 720 430" style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <rect width="720" height="430" fill="#080d18" rx="6" />
+
+        {/* Subtle horizontal bands */}
+        {[60, 150, 245, 320, 395].map(y => (
+          <line key={y} x1="30" y1={y} x2="690" y2={y} stroke="#111827" strokeWidth="1" strokeDasharray="3 6" />
+        ))}
+
+        {/* Edges */}
+        {Object.entries(ROUTE_EDGES).map(([routeId, edge]) => {
+          const from = NODES[edge.from];
+          const to   = NODES[edge.to];
+          const analysis = routeAnalyses[routeId];
+          const isSelected = routeId === selectedRoute;
+          const risk = analysis?.risk ?? 'normal';
+          const cfg = RISK_EDGE[risk];
+          const color = isSelected ? '#eab308' : cfg.stroke;
+          const sw    = isSelected ? 4.5 : cfg.width;
+          const dash  = isSelected ? null : cfg.dash;
+          const path  = curvePath(from.x, from.y, to.x, to.y);
+          const mid   = midPoint(from.x, from.y, to.x, to.y);
+
+          // Latest-3wk tonnes for edge label
+          const last3 = (analysis?.weeklyData ?? []).filter(w => w.week >= 10);
+          const tonnes = Math.round(last3.reduce((s, d) => s + (d.totalTonnes ?? 0), 0));
+
+          return (
+            <g key={routeId} onClick={() => onRouteSelect(routeId)} style={{ cursor: 'pointer' }}>
+              {/* Glow */}
+              <path d={path} stroke={color} strokeWidth={sw + 5} strokeOpacity="0.12" fill="none" />
+              {/* Main line */}
+              <path
+                d={path}
+                stroke={color}
+                strokeWidth={sw}
+                strokeDasharray={dash ?? undefined}
+                fill="none"
+                strokeLinecap="round"
+              />
+              {/* Tonnes label */}
+              <rect x={mid.x - 22} y={mid.y - 9} width="44" height="15" rx="3" fill="#0d1220" />
+              <text
+                x={mid.x} y={mid.y + 2.5}
+                textAnchor="middle" fontSize="9" fill={color} fontWeight="600" fontFamily="monospace"
+              >
+                {tonnes > 0 ? `${(tonnes / 1000).toFixed(1)}k t` : routeId}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Nodes */}
+        {Object.entries(NODES).map(([name, pos]) => {
+          // Which routes touch this node?
+          const touchingRoute = Object.entries(ROUTE_EDGES).find(
+            ([, e]) => e.from === name || e.to === name
+          );
+          const rId = touchingRoute?.[0];
+          const isSelectedNode = rId === selectedRoute;
+          const risk = rId ? (routeAnalyses[rId]?.risk ?? 'normal') : 'normal';
+          const nodeColor = isSelectedNode
+            ? '#eab308'
+            : risk === 'critical' ? '#f97316'
+            : risk === 'watch'    ? '#fbbf24'
+            : '#374151';
+
+          return (
+            <g key={name}>
+              {/* Outer glow ring */}
+              {isSelectedNode && (
+                <circle cx={pos.x} cy={pos.y} r="11" fill="none" stroke="#eab308" strokeWidth="1" strokeOpacity="0.4" />
+              )}
+              <circle cx={pos.x} cy={pos.y} r="6.5" fill="#0d1220" stroke={nodeColor} strokeWidth="2" />
+              <circle cx={pos.x} cy={pos.y} r="2.5" fill={nodeColor} />
+              <text
+                x={pos.x} y={pos.y + 20}
+                textAnchor="middle" fontSize="10" fill="#9ca3af" fontFamily="sans-serif"
+              >
+                {pos.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
