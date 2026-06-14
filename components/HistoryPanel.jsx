@@ -36,11 +36,27 @@ function CompareCard({ label, from, to, fmt, bad }) {
   );
 }
 
-export default function HistoryPanel({ history, onClear }) {
+function CaptureButton({ onCapture }) {
+  return (
+    <button onClick={onCapture} style={{
+      fontSize: 11, fontWeight: 700, color: THEME.onAccent, backgroundColor: THEME.accent,
+      borderRadius: 5, padding: '6px 12px',
+    }}>
+      ＋ Capture snapshot now
+    </button>
+  );
+}
+
+export default function HistoryPanel({ history, onClear, onCapture }) {
   const [baselineIdx, setBaselineIdx] = useState(0);
 
   if (!history || history.length === 0) {
-    return <div style={{ padding: '30px 0', textAlign: 'center', fontSize: 13, color: THEME.muted }}>No snapshots yet.</div>;
+    return (
+      <div style={{ padding: '24px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+        <div style={{ fontSize: 13, color: THEME.muted }}>No snapshots yet.</div>
+        {onCapture && <CaptureButton onCapture={onCapture} />}
+      </div>
+    );
   }
 
   const latest = history[history.length - 1];
@@ -49,11 +65,13 @@ export default function HistoryPanel({ history, onClear }) {
 
   if (history.length < 2) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ fontSize: 12, color: THEME.muted, lineHeight: 1.6 }}>
-          History builds automatically as your data changes. One snapshot captured so far ({clockLabel(latest.ts)}).
-          Edit the connected sheet (or upload a new file) and a second snapshot will appear — then you'll see the before → after here.
+          History records snapshots as your data changes — one captured so far ({clockLabel(latest.ts)}).
+          To see a before → after now: click <strong style={{ color: THEME.textDim }}>Capture snapshot</strong> to mark a baseline,
+          edit the connected sheet, hit <strong style={{ color: THEME.textDim }}>↻ Refresh now</strong> on the source bar, and a second snapshot will appear here.
         </div>
+        <div><CaptureButton onCapture={onCapture} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           <CompareCard label="Avoidable cost" from={latest.avoidableCost} to={latest.avoidableCost} fmt={money} bad />
           <CompareCard label="Network tonnes" from={latest.networkTonnes} to={latest.networkTonnes} fmt={tFmt} />
@@ -74,7 +92,10 @@ export default function HistoryPanel({ history, onClear }) {
         <span style={{ fontSize: 12, color: THEME.muted }}>
           Comparing <strong style={{ color: THEME.textDim }}>{timeLabel(baseline.ts)}</strong> → <strong style={{ color: THEME.text }}>{timeLabel(latest.ts)} (latest)</strong> · {history.length} snapshots
         </span>
-        <button onClick={onClear} style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>Clear history</button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <CaptureButton onCapture={onCapture} />
+          <button onClick={onClear} style={{ fontSize: 11, fontWeight: 700, color: THEME.muted }}>Clear history</button>
+        </div>
       </div>
 
       {/* Before → after KPI comparison */}

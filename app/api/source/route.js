@@ -28,9 +28,11 @@ function candidates(target) {
     const id = m[1];
     const g = target.match(/[#&?]gid=(\d+)/);
     const gid = g ? g[1] : '0';
+    // _cb busts Google's CDN cache so sheet edits propagate within seconds
+    const cb = Date.now();
     return [
-      `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`,
-      `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`,
+      `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}&_cb=${cb}`,
+      `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}&_cb=${cb}`,
     ];
   }
   return [target];
