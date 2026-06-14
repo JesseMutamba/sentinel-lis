@@ -2,9 +2,10 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
-  generateTrips, computeFromTrips, computePeriodMetrics, buildExplanations,
+  sampleRows, computeFromTrips, computePeriodMetrics, buildExplanations,
 } from '@/lib/data';
 import { parseTripsCSV, normalizeSheetUrl } from '@/lib/csv';
+import { SAMPLE_FILE_NAME } from '@/lib/sampleCsv';
 import { THEME } from '@/lib/theme';
 import KPICards from './KPICards';
 import CorridorMap from './CorridorMap';
@@ -25,9 +26,11 @@ const PERIODS = ['week', 'month', 'quarter'];
 const STORAGE_KEY = 'lumnia.dataset';
 const POLL_MS = 10000;
 
-// Optional deploy-wide default live source (set in Vercel env). When present and
-// the user hasn't connected their own source, the demo auto-connects on load.
-const DEFAULT_LIVE_URL = (process.env.NEXT_PUBLIC_LIVE_SOURCE_URL || '').trim();
+// Deploy-wide default live source. Override in Vercel env (NEXT_PUBLIC_LIVE_SOURCE_URL);
+// falls back to the connected Kamoa demo sheet. When the user hasn't connected
+// their own source, the demo auto-connects to this on load.
+const DEFAULT_LIVE_URL = (process.env.NEXT_PUBLIC_LIVE_SOURCE_URL
+  || 'https://docs.google.com/spreadsheets/d/1tJg7E97GOzndqQZrH8wTKay3z7PRZj_9YAz-m3V6VU0/edit?gid=40456982#gid=40456982').trim();
 
 // Route every remote fetch through our same-origin proxy (no CORS) and add a
 // cache-buster so sheet edits show up promptly.
@@ -36,7 +39,7 @@ function proxied(rawUrl) {
   return `/api/source?url=${encodeURIComponent(csvUrl)}&_cb=${Date.now()}`;
 }
 
-const SAMPLE_TRIPS = generateTrips();
+const SAMPLE_TRIPS = sampleRows();
 
 function hostOf(url) { try { return new URL(url).host; } catch { return url; } }
 function fmtTime(ts) {
@@ -301,7 +304,7 @@ function DataSourceStrip({ source, data, onManage, onRefresh, onReset }) {
   const ig = data.integrity;
   let dot = THEME.muted, label, detail;
   if (source.kind === 'sample') {
-    dot = THEME.muted; label = 'Bundled synthetic demo'; detail = 'kamoa_lis_synthetic_export.csv';
+    dot = THEME.muted; label = 'Bundled synthetic demo'; detail = SAMPLE_FILE_NAME;
   } else if (source.kind === 'upload') {
     dot = THEME.gold; label = 'Uploaded session'; detail = `ingested ${fmtTime(source.at)}`;
   } else {
