@@ -83,13 +83,13 @@ export default function UploadModal({ open, source, onClose, onIngest, onLoadSam
           <div>
             <div style={labelStyle}>① Connect a live source (recommended)</div>
             <p style={{ fontSize: 11.5, color: THEME.muted, lineHeight: 1.5, marginBottom: 8 }}>
-              Paste a published CSV URL (e.g. a Google Sheet → File → Share → Publish to web → CSV).
-              Lumnia polls it and the dashboard moves whenever the sheet changes — no rebuild.
+              Paste your Google Sheet link (Share → <strong style={{ color: THEME.textDim }}>Anyone with the link → Viewer</strong>, then copy link).
+              Lumnia keeps the demo in sync — edit the sheet and it updates within ~10s, no rebuild, no Publish-to-web step.
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 value={url} onChange={e => setUrl(e.target.value)}
-                placeholder="https://docs.google.com/.../pub?output=csv"
+                placeholder="https://docs.google.com/spreadsheets/d/…/edit"
                 style={{
                   flex: 1, padding: '9px 12px', fontSize: 12, color: THEME.text,
                   backgroundColor: THEME.panelDark, border: `1px solid ${THEME.border}`, borderRadius: 6, outline: 'none',

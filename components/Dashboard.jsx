@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   generateTrips, computeFromTrips, computePeriodMetrics, buildExplanations,
 } from '@/lib/data';
-import { parseTripsCSV } from '@/lib/csv';
+import { parseTripsCSV, normalizeSheetUrl } from '@/lib/csv';
 import { THEME } from '@/lib/theme';
 import KPICards from './KPICards';
 import CorridorMap from './CorridorMap';
@@ -23,7 +23,18 @@ const TABS = [
 const NAV_LINKS = ['Solutions', 'Logistics', 'Pricing', 'About', 'Contact'];
 const PERIODS = ['week', 'month', 'quarter'];
 const STORAGE_KEY = 'lumnia.dataset';
-const POLL_MS = 15000;
+const POLL_MS = 10000;
+
+// Optional deploy-wide default live source (set in Vercel env). When present and
+// the user hasn't connected their own source, the demo auto-connects on load.
+const DEFAULT_LIVE_URL = (process.env.NEXT_PUBLIC_LIVE_SOURCE_URL || '').trim();
+
+// Route every remote fetch through our same-origin proxy (no CORS) and add a
+// cache-buster so sheet edits show up promptly.
+function proxied(rawUrl) {
+  const csvUrl = normalizeSheetUrl(rawUrl);
+  return `/api/source?url=${encodeURIComponent(csvUrl)}&_cb=${Date.now()}`;
+}
 
 const SAMPLE_TRIPS = generateTrips();
 
@@ -77,8 +88,8 @@ export default function Dashboard() {
 
   const fetchUrl = useCallback(async (url, { announce = false } = {}) => {
     try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch(proxied(url), { cache: 'no-store' });
+      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
       const text = await res.text();
       const { trips: rows, errors } = parseTripsCSV(text);
       if (errors.length || !rows.length) throw new Error(errors[0] || 'No rows parsed');
@@ -101,13 +112,21 @@ export default function Dashboard() {
   }, [fetchUrl]);
 
   useEffect(() => {
+    let restored = false;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      if (saved?.trips?.length) { setTrips(saved.trips); setSource(saved.source ?? { kind: 'upload' }); }
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved?.trips?.length) {
+          setTrips(saved.trips);
+          setSource(saved.source ?? { kind: 'upload' });
+          restored = true;
+        }
+      }
     } catch { /* ignore */ }
-  }, []);
+    // No user source yet → auto-connect the configured default live source
+    if (!restored && DEFAULT_LIVE_URL) connectUrl(DEFAULT_LIVE_URL);
+  }, [connectUrl]);
 
   useEffect(() => {
     clearInterval(pollRef.current);
