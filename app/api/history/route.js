@@ -4,8 +4,10 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+// Accept either the legacy Vercel KV names or the Upstash Redis names (Vercel's
+// current Storage UI provisions Upstash and sets UPSTASH_REDIS_REST_*).
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const KEY = 'lumnia:history';
 const CAP = 100;
 
