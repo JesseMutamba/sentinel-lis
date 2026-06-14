@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   sampleRows, computeFromTrips, computePeriodMetrics, buildExplanations,
 } from '@/lib/data';
-import { parseTripsCSV, normalizeSheetUrl } from '@/lib/csv';
+import { parseTripsCSV } from '@/lib/csv';
 import { SAMPLE_FILE_NAME } from '@/lib/sampleCsv';
 import { THEME } from '@/lib/theme';
 import KPICards from './KPICards';
@@ -32,11 +32,10 @@ const POLL_MS = 10000;
 const DEFAULT_LIVE_URL = (process.env.NEXT_PUBLIC_LIVE_SOURCE_URL
   || 'https://docs.google.com/spreadsheets/d/1tJg7E97GOzndqQZrH8wTKay3z7PRZj_9YAz-m3V6VU0/edit?gid=40456982#gid=40456982').trim();
 
-// Route every remote fetch through our same-origin proxy (no CORS) and add a
-// cache-buster so sheet edits show up promptly.
+// Route every remote fetch through our same-origin proxy (no CORS). The proxy
+// expands a Google Sheets link into CSV endpoints; we just add a cache-buster.
 function proxied(rawUrl) {
-  const csvUrl = normalizeSheetUrl(rawUrl);
-  return `/api/source?url=${encodeURIComponent(csvUrl)}&_cb=${Date.now()}`;
+  return `/api/source?url=${encodeURIComponent(rawUrl)}&_cb=${Date.now()}`;
 }
 
 const SAMPLE_TRIPS = sampleRows();
