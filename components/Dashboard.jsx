@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
-  sampleRows, computeFromTrips, computePeriodMetrics, buildExplanations,
+  sampleRows, computeFromTrips, computePeriodMetrics, buildExplanations, snapshotOf, snapSig,
 } from '@/lib/data';
 import { parseTripsCSV } from '@/lib/csv';
 import { SAMPLE_FILE_NAME } from '@/lib/sampleCsv';
+import { DEFAULT_LIVE_URL } from '@/lib/config';
 import { THEME } from '@/lib/theme';
 import KPICards from './KPICards';
 import CorridorMap from './CorridorMap';
@@ -30,12 +31,6 @@ const HISTORY_KEY = 'lumnia.history';
 const MAX_SNAPSHOTS = 60;
 const POLL_MS = 10000;
 
-// Deploy-wide default live source. Override in Vercel env (NEXT_PUBLIC_LIVE_SOURCE_URL);
-// falls back to the connected Kamoa demo sheet. When the user hasn't connected
-// their own source, the demo auto-connects to this on load.
-const DEFAULT_LIVE_URL = (process.env.NEXT_PUBLIC_LIVE_SOURCE_URL
-  || 'https://docs.google.com/spreadsheets/d/1tJg7E97GOzndqQZrH8wTKay3z7PRZj_9YAz-m3V6VU0/edit?gid=40456982#gid=40456982').trim();
-
 // Route every remote fetch through our same-origin proxy (no CORS). The proxy
 // expands a Google Sheets link into CSV endpoints; we just add a cache-buster.
 function proxied(rawUrl) {
@@ -49,25 +44,6 @@ function fmtTime(ts) {
   if (!ts) return '';
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
-
-// A compact KPI snapshot for the History tab
-function snapshotOf(data) {
-  const s = data.summary, ig = data.integrity;
-  const hero = data.routeAnalyses[data.heroId];
-  return {
-    ts: Date.now(),
-    avoidableCost: s.totalAvoidableCost,
-    networkTonnes: s.totalTonnes,
-    flaggedSegments: s.flaggedSegments,
-    criticalSegments: s.criticalSegments,
-    cleanTrips: ig.cleanTrips,
-    quarantined: ig.rowsNeedingReview,
-    rawRows: ig.rawRows,
-    duplicatesDropped: ig.duplicatesDropped,
-    hero: hero ? { segment: hero.segment, avoidableCost: hero.avoidableCost, leadTimeWeeks: hero.leadTimeWeeks } : null,
-  };
-}
-const snapSig = s => `${s.rawRows}:${s.cleanTrips}:${Math.round(s.avoidableCost)}:${Math.round(s.networkTonnes)}:${s.flaggedSegments}`;
 
 export default function Dashboard() {
   const [trips, setTrips] = useState(SAMPLE_TRIPS);
