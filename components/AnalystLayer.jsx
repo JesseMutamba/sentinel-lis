@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { THEME } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 export default function AnalystLayer({ integrity, thresholds, source }) {
+  const THEME = useTheme();
   const [open, setOpen] = useState(true);
 
   const sourceRoles = [

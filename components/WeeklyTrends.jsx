@@ -3,19 +3,20 @@
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend,
 } from 'recharts';
-import { THEME } from '@/lib/theme';
-
-const PANEL = { backgroundColor: THEME.panelDark, border: `1px solid ${THEME.border}`, borderRadius: 6, padding: '14px 8px 8px' };
-const TICK = { fill: THEME.muted, fontSize: 11 };
-const TT = {
-  contentStyle: { backgroundColor: THEME.panel, border: `1px solid ${THEME.border}`, borderRadius: 4, fontSize: 12 },
-  labelStyle: { color: THEME.textDim }, itemStyle: { color: THEME.text },
-};
-const LABEL = { fontSize: 12, fontWeight: 600, color: THEME.textDim, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' };
+import { useTheme } from '@/lib/theme';
 
 export default function WeeklyTrends({ routeAnalysis }) {
+  const THEME = useTheme();
   if (!routeAnalysis) return null;
   const { weeklyData, baselineCPT, signalWeek, blowoutWeek, segment } = routeAnalysis;
+
+  const PANEL = { backgroundColor: THEME.panelDark, border: `1px solid ${THEME.border}`, borderRadius: 6, padding: '14px 8px 8px' };
+  const TICK = { fill: THEME.muted, fontSize: 11 };
+  const TT = {
+    contentStyle: { backgroundColor: THEME.panel, border: `1px solid ${THEME.border}`, borderRadius: 4, fontSize: 12 },
+    labelStyle: { color: THEME.textDim }, itemStyle: { color: THEME.text },
+  };
+  const LABEL = { fontSize: 12, fontWeight: 600, color: THEME.textDim, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>

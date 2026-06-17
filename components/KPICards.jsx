@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { THEME } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 function Trend({ value, bad }) {
+  const THEME = useTheme();
   if (value == null) return null;
   const up = value >= 0;
   const good = bad ? !up : up;
@@ -16,6 +17,7 @@ function Trend({ value, bad }) {
 }
 
 export default function KPICards({ metrics, explanations = {}, hero }) {
+  const THEME = useTheme();
   const m = metrics;
   const [open, setOpen] = useState(null);
 

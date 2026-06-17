@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { THEME } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 const money = n => `$${Math.round(n).toLocaleString()}`;
 const tFmt = n => `${Math.round(n).toLocaleString()} t`;
@@ -10,6 +10,7 @@ const timeLabel = ts => new Date(ts).toLocaleString([], { month: 'short', day: '
 const clockLabel = ts => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function Delta({ from, to, fmt, bad }) {
+  const THEME = useTheme();
   const d = to - from;
   if (Math.abs(d) < 1e-9) return <span style={{ fontSize: 11, color: THEME.faint }}>no change</span>;
   const up = d > 0;
@@ -24,6 +25,7 @@ function Delta({ from, to, fmt, bad }) {
 }
 
 function CompareCard({ label, from, to, fmt, bad }) {
+  const THEME = useTheme();
   return (
     <div style={{ backgroundColor: THEME.panelDark, border: `1px solid ${THEME.border}`, borderRadius: 6, padding: '12px 14px' }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: THEME.faint, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
@@ -37,6 +39,7 @@ function CompareCard({ label, from, to, fmt, bad }) {
 }
 
 function CaptureButton({ onCapture }) {
+  const THEME = useTheme();
   return (
     <button onClick={onCapture} style={{
       fontSize: 11, fontWeight: 700, color: THEME.onAccent, backgroundColor: THEME.accent,
@@ -48,6 +51,7 @@ function CaptureButton({ onCapture }) {
 }
 
 export default function HistoryPanel({ history, onClear, onCapture }) {
+  const THEME = useTheme();
   const [baselineIdx, setBaselineIdx] = useState(0);
 
   if (!history || history.length === 0) {
@@ -143,7 +147,7 @@ export default function HistoryPanel({ history, onClear, onCapture }) {
                 display: 'grid', gridTemplateColumns: '120px 1fr 1fr 70px', gap: 10, alignItems: 'center',
                 padding: '8px 12px', borderRadius: 5, textAlign: 'left',
                 border: `1px solid ${isBase ? THEME.selected : THEME.border}`,
-                backgroundColor: isBase ? '#1c1606' : 'transparent',
+                backgroundColor: isBase ? THEME.accentSoft : 'transparent',
               }}>
                 <span style={{ fontSize: 11, color: THEME.textDim }}>
                   {clockLabel(s.ts)}{isLatest ? <span style={{ color: THEME.greenBright, fontWeight: 700 }}> · latest</span> : ''}

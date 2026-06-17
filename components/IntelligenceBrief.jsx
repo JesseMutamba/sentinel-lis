@@ -1,17 +1,20 @@
 'use client';
 
-import { THEME } from '@/lib/theme';
-
-const RISK = {
-  critical: { label: 'Critical', color: THEME.critical, bg: '#1d0d07', border: '#5e271a' },
-  watch:    { label: 'Watch',    color: THEME.watch,    bg: '#1c1606', border: THEME.goldDeep },
-  normal:   { label: 'Normal',   color: THEME.normal,   bg: '#101a0c', border: THEME.greenDeep },
-};
+import { useTheme } from '@/lib/theme';
 
 const money = n => `$${Math.round(n).toLocaleString()}`;
 const h = n => `${(n ?? 0).toFixed(1)}h`;
 
+function riskStyles(THEME) {
+  return {
+    critical: { label: 'Critical', color: THEME.critical, bg: THEME.critBg, border: THEME.critBorder },
+    watch:    { label: 'Watch',    color: THEME.watch,    bg: THEME.watchBg, border: THEME.watchBorder },
+    normal:   { label: 'Normal',   color: THEME.normal,   bg: THEME.normBg, border: THEME.normBorder },
+  };
+}
+
 function Chain({ selected }) {
+  const THEME = useTheme();
   const steps = [
     { k: 'Operational event', v: selected.topDelayReason },
     { k: 'Delay drift', v: `+${(selected.delayDriftHours ?? 0).toFixed(1)}h` },
@@ -31,7 +34,9 @@ function Chain({ selected }) {
 }
 
 export default function IntelligenceBrief({ selected, routeAnalyses, integrity, onSelectRoute, onViewTrips }) {
+  const THEME = useTheme();
   if (!selected) return null;
+  const RISK = riskStyles(THEME);
   const cfg = RISK[selected.risk] ?? RISK.normal;
 
   const strongestNormal = Object.values(routeAnalyses)
@@ -53,7 +58,6 @@ export default function IntelligenceBrief({ selected, routeAnalyses, integrity, 
 
       <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* Flagged quick-switch */}
         {flagged.length > 1 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {flagged.map(r => {
@@ -70,7 +74,6 @@ export default function IntelligenceBrief({ selected, routeAnalyses, integrity, 
           </div>
         )}
 
-        {/* Selected segment card */}
         <section style={{ border: `1px solid ${cfg.border}`, borderRadius: 7, padding: '14px 16px', backgroundColor: cfg.bg }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 10, fontWeight: 800, color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{cfg.label}</span>
@@ -99,7 +102,6 @@ export default function IntelligenceBrief({ selected, routeAnalyses, integrity, 
           </button>
         </section>
 
-        {/* Decoy / normal comparison */}
         {strongestNormal && (
           <section style={{ border: `1px solid ${RISK.normal.border}`, borderRadius: 7, padding: '12px 16px', backgroundColor: RISK.normal.bg }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -118,7 +120,6 @@ export default function IntelligenceBrief({ selected, routeAnalyses, integrity, 
           </section>
         )}
 
-        {/* Active corridor file */}
         <section style={{ borderTop: `1px solid ${THEME.border}`, paddingTop: 12 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: THEME.faint, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
             Active corridor file

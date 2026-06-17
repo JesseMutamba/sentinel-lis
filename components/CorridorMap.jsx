@@ -1,13 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { THEME } from '@/lib/theme';
-
-const RISK = {
-  critical: { color: THEME.critical, label: 'Critical' },
-  watch:    { color: THEME.watch,    label: 'Watch' },
-  normal:   { color: THEME.normal,   label: 'Normal' },
-};
+import { useTheme } from '@/lib/theme';
 
 const COL_GAP = 210, ROW_GAP = 64, MX = 96, MY = 44;
 
@@ -58,6 +52,12 @@ function curve(a, b) {
 }
 
 export default function CorridorMap({ routeAnalyses, routeTonnes = {}, selectedRoute, onRouteSelect }) {
+  const THEME = useTheme();
+  const RISK = {
+    critical: { color: THEME.critical, label: 'Critical' },
+    watch:    { color: THEME.watch,    label: 'Watch' },
+    normal:   { color: THEME.normal,   label: 'Normal' },
+  };
   const [hovered, setHovered] = useState(null);
   const { pos, edges, W, H } = useMemo(() => layout(routeAnalyses), [routeAnalyses]);
 
@@ -107,7 +107,7 @@ export default function CorridorMap({ routeAnalyses, routeTonnes = {}, selectedR
             const onActive = touching.some(e => e.code === selectedRoute || e.code === hovered);
             const worst = touching.reduce((acc, e) => ({ critical: 3, watch: 2, normal: 1 }[e.risk] > { critical: 3, watch: 2, normal: 1 }[acc] ? e.risk : acc), 'normal');
             const sel = touching.some(e => e.code === selectedRoute);
-            const color = sel ? THEME.selected : onActive ? RISK[worst].color : '#4a4636';
+            const color = sel ? THEME.selected : onActive ? RISK[worst].color : THEME.nodeDim;
             return (
               <g key={name}>
                 {onActive && <circle cx={p.x} cy={p.y} r="10" fill="none" stroke={color} strokeWidth="1" strokeOpacity="0.5" />}
