@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
-import { THEME } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 import { parseTripsCSV, CSV_TEMPLATE } from '@/lib/csv';
 import { computeFromTrips } from '@/lib/data';
 
 function Stat({ label, value, color }) {
+  const THEME = useTheme();
   return (
     <div style={{ flex: 1, textAlign: 'center' }}>
       <div style={{ fontSize: 22, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
@@ -15,6 +16,7 @@ function Stat({ label, value, color }) {
 }
 
 export default function UploadModal({ open, source, onClose, onIngest, onLoadSample, onConnectUrl }) {
+  const THEME = useTheme();
   const [text, setText] = useState('');
   const [url, setUrl] = useState(source?.kind === 'url' ? source.url : '');
   const [fileName, setFileName] = useState('');
@@ -54,7 +56,7 @@ export default function UploadModal({ open, source, onClose, onIngest, onLoadSam
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 100,
-        backgroundColor: 'rgba(3,7,14,0.72)', backdropFilter: 'blur(3px)',
+        backgroundColor: THEME.overlay, backdropFilter: 'blur(3px)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 16px', overflowY: 'auto',
       }}
     >
@@ -101,7 +103,7 @@ export default function UploadModal({ open, source, onClose, onIngest, onLoadSam
                 style={{
                   padding: '9px 16px', fontSize: 12, fontWeight: 700, borderRadius: 6,
                   backgroundColor: url.trim() ? THEME.green : THEME.border,
-                  color: url.trim() ? '#06281e' : THEME.faint, whiteSpace: 'nowrap',
+                  color: url.trim() ? THEME.onGreen : THEME.faint, whiteSpace: 'nowrap',
                 }}
               >
                 Connect live
@@ -181,7 +183,7 @@ export default function UploadModal({ open, source, onClose, onIngest, onLoadSam
               style={{
                 padding: '10px 20px', fontSize: 13, fontWeight: 700, borderRadius: 6,
                 backgroundColor: canIngest ? THEME.gold : THEME.border,
-                color: canIngest ? '#1a1400' : THEME.faint,
+                color: canIngest ? THEME.onAccent : THEME.faint,
               }}
             >
               Ingest dataset →

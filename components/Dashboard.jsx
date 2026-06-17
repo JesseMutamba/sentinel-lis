@@ -7,7 +7,7 @@ import {
 import { parseTripsCSV } from '@/lib/csv';
 import { SAMPLE_FILE_NAME } from '@/lib/sampleCsv';
 import { DEFAULT_LIVE_URL } from '@/lib/config';
-import { THEME } from '@/lib/theme';
+import { darkTheme, lightTheme, ThemeContext, useTheme } from '@/lib/theme';
 import KPICards from './KPICards';
 import CorridorMap from './CorridorMap';
 import WeeklyTrends from './WeeklyTrends';
@@ -54,10 +54,18 @@ export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyReady, setHistoryReady] = useState(false);
+  const [themeMode, setThemeMode] = useState('dark');
 
   const pollRef = useRef(null);
   const lastHashRef = useRef('');
   const historyModeRef = useRef('local');
+
+  const THEME = themeMode === 'light' ? lightTheme : darkTheme;
+  const toggleTheme = () => setThemeMode(m => {
+    const next = m === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem('lumnia.theme', next); } catch { /* ignore */ }
+    return next;
+  });
 
   const data = useMemo(() => computeFromTrips(trips), [trips]);
   const metrics = useMemo(() => computePeriodMetrics(data, period), [data, period]);
@@ -114,6 +122,10 @@ export default function Dashboard() {
     setModalOpen(false);
     fetchUrl(url, { announce: true });
   }, [fetchUrl]);
+
+  useEffect(() => {
+    try { const m = localStorage.getItem('lumnia.theme'); if (m === 'light' || m === 'dark') setThemeMode(m); } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     let restored = false;
@@ -227,6 +239,7 @@ export default function Dashboard() {
   const navActive = { color: THEME.goldBright, border: THEME.accent };
 
   return (
+    <ThemeContext.Provider value={THEME}>
     <div style={{ minHeight: '100vh', backgroundColor: THEME.bg, color: THEME.text }}>
 
       {/* ── Nav ── */}
@@ -258,6 +271,10 @@ export default function Dashboard() {
         })}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button onClick={toggleTheme} title="Toggle light / dark" style={{
+            fontSize: 13, color: THEME.textDim, border: `1px solid ${THEME.border}`, borderRadius: 6,
+            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{themeMode === 'light' ? '☾' : '☀'}</button>
           <button style={{ fontSize: 12, color: THEME.muted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Sign In</button>
           <button onClick={() => setModalOpen(true)} style={{
             fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
@@ -277,7 +294,7 @@ export default function Dashboard() {
               </span>
               <span style={{
                 fontSize: 10, fontWeight: 700, color: THEME.goldBright,
-                backgroundColor: '#1c1606', border: `1px solid ${THEME.goldDeep}`,
+                backgroundColor: THEME.accentSoft, border: `1px solid ${THEME.goldDeep}`,
                 padding: '1px 8px', borderRadius: 3, letterSpacing: '0.08em', textTransform: 'uppercase',
               }}>
                 {source.kind === 'sample' ? 'Synthetic Data' : 'Live Data'}
@@ -367,10 +384,12 @@ export default function Dashboard() {
         onConnectUrl={connectUrl}
       />
     </div>
+    </ThemeContext.Provider>
   );
 }
 
 function DataSourceStrip({ source, data, onManage, onRefresh, onReset }) {
+  const THEME = useTheme();
   const ig = data.integrity;
   let dot = THEME.muted, label, detail;
   if (source.kind === 'sample') {

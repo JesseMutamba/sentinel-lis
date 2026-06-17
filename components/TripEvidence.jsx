@@ -1,10 +1,11 @@
 'use client';
 
-import { THEME } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 const HEADERS = ['Trip ID', 'Week', 'Extra Delay (hrs)', 'CPT ($/t)', 'Tonnes', 'Status'];
 
 export default function TripEvidence({ trips, routeAnalysis }) {
+  const THEME = useTheme();
   return (
     <div>
       {routeAnalysis && (
@@ -28,7 +29,7 @@ export default function TripEvidence({ trips, routeAnalysis }) {
             {trips.map((trip, i) => {
               const isQ = trip.status === 'quarantined';
               return (
-                <tr key={trip.id} style={{ borderBottom: `1px solid ${THEME.border}`, backgroundColor: isQ ? '#1d0d07' : i % 2 ? THEME.panelDark : 'transparent' }}>
+                <tr key={trip.id} style={{ borderBottom: `1px solid ${THEME.border}`, backgroundColor: isQ ? THEME.critBg : i % 2 ? THEME.panelDark : 'transparent' }}>
                   <td style={{ padding: '8px 12px', fontFamily: 'monospace', fontSize: 12, color: isQ ? THEME.critical : THEME.text, whiteSpace: 'nowrap' }}>{trip.id}</td>
                   <td style={{ padding: '8px 12px', color: THEME.textDim }}>W{trip.week}</td>
                   <td style={{ padding: '8px 12px', color: trip.delay == null ? THEME.faint : THEME.text }}>
@@ -43,7 +44,7 @@ export default function TripEvidence({ trips, routeAnalysis }) {
                   <td style={{ padding: '8px 12px' }}>
                     <span style={{
                       padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
-                      backgroundColor: isQ ? '#3a1408' : '#16240f',
+                      backgroundColor: isQ ? THEME.quarantineBg : THEME.cleanBg,
                       color: isQ ? THEME.critical : THEME.normal,
                       textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap',
                     }}>{trip.status}</span>
